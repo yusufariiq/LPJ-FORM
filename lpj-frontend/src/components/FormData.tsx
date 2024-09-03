@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Formik, Form, Field, FieldProps } from 'formik';
-import { TextField, Button, Box, Container, Snackbar, Alert } from '@mui/material';
+import { TextField, Button, Box, Container, Snackbar, Alert, Typography, CircularProgress } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -47,6 +47,7 @@ const validationSchema = Yup.object().shape({
   });
 
 export default function LPJForm() {
+    const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [dataForm, setDataForm] = useState<LPJForm>({
         no_request: '',
@@ -67,14 +68,16 @@ export default function LPJForm() {
         nama_approve_vp: '',
     })
 
-    const handleSubmit = async (values: any, { setSubmitting }: any) => {
+    const handleSubmit = async (values: any, { setSubmitting, resetForm }: any) => {
         try {
+            setLoading(true);
             const response = await axios.post('http://localhost:5000/generate-template', values, {
                 responseType: 'blob',
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
+    
             if (response.status === 200) {
                 const contentType = response.headers['content-type'];
                 if (contentType && contentType.includes('application/pdf')) {
@@ -88,7 +91,7 @@ export default function LPJForm() {
                     link.remove();
                 } else {
                     const reader = new FileReader();
-                    reader.onload = function() {
+                    reader.onload = function () {
                         const errorText = reader.result as string;
                         setErrorMessage(errorText || 'An unknown error occurred');
                     };
@@ -97,6 +100,10 @@ export default function LPJForm() {
             } else {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
+    
+            // Clear form data after successful submission
+            resetForm();
+    
         } catch (error) {
             console.error('Error generating PDF:', error);
             if (axios.isAxiosError(error) && error.response) {
@@ -106,176 +113,189 @@ export default function LPJForm() {
             }
         } finally {
             setSubmitting(false);
+            setLoading(false);
         }
     };
 
     return (
         <Container>
-            <Box display="grid" gridTemplateColumns="repeat(1, 1fr)" gap={2} sx={{px:3, py:2}}>
-                <Formik
-                initialValues={dataForm}
-                validationSchema={validationSchema}
-                onSubmit={handleSubmit} >
-                    {({ errors, touched, isSubmitting, setFieldValue }) => (
-                    <Form>
-                        <Box display="grid" gridTemplateColumns="repeat(1, 1fr)" gap={2}>
-                            <Field
-                                as={TextField}
-                                name="no_request"
-                                label="Nomor"
-                                error={touched.no_request && !!errors.no_request}
-                                helperText={touched.no_request && errors.no_request}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="nama_pemohon"
-                                label="Nama"
-                                error={touched.nama_pemohon && !!errors.nama_pemohon}
-                                helperText={touched.nama_pemohon && errors.nama_pemohon}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="jabatan"
-                                label="Jabatan"
-                                error={touched.jabatan && !!errors.jabatan}
-                                helperText={touched.jabatan && errors.jabatan}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="nama_departemen"
-                                label="Divisi"
-                                error={touched.nama_departemen && !!errors.nama_departemen}
-                                helperText={touched.nama_departemen && errors.nama_departemen}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="uraian"
-                                label="Program Kerja"
-                                error={touched.uraian && !!errors.uraian}
-                                helperText={touched.uraian && errors.uraian}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="nama_jenis"
-                                label="Jenis Program Kerja"
-                                error={touched.nama_jenis && !!errors.nama_jenis}
-                                helperText={touched.nama_jenis && errors.nama_jenis}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="jml_request"
-                                label="Jumlah Pertanggungjawaban"
-                                type="number"
-                                error={touched.jml_request && !!errors.jml_request}
-                                helperText={touched.jml_request && errors.jml_request}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="jml_terbilang"
-                                label="Terbilang"
-                                error={touched.jml_terbilang && !!errors.jml_terbilang}
-                                helperText={touched.jml_terbilang && errors.jml_terbilang}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="deskripsi"
-                                label="Deskripsi"
-                                error={touched.deskripsi && !!errors.deskripsi}
-                                helperText={touched.deskripsi && errors.deskripsi}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="harga"
-                                label="Harga"
-                                type="number"
-                                error={touched.harga && !!errors.harga}
-                                helperText={touched.harga && errors.harga}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="total"
-                                label="Total"
-                                type="number"
-                                error={touched.total && !!errors.total}
-                                helperText={touched.total && errors.total}
-                                fullWidth
-                            />
-                            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                <Field
-                                name="tgl_lpj"
-                                component={({ field }: FieldProps) => (
-                                    <DatePicker
-                                    label="Tanggal"
-                                    value={field.value ? dayjs(field.value) : null}
-                                    onChange={(newValue) => {
-                                        setFieldValue(field.name, newValue?.format('M/D/YYYY') || '');
-                                        console.log(newValue)
-                                    }}
-                                    slots={{ textField: (props) => <TextField {...props} fullWidth /> }}
+            {loading && (
+                <Box display="flex" justifyContent="center" alignItems="center" height="600px">
+                    <CircularProgress />
+                </Box>
+            )}
+           {!loading && (
+                <>
+                    <Typography variant="h3" component="h1" sx={{display:"flex", alignItems:'center', marginX:3}}>
+                        LPJ Form
+                    </Typography>
+                    <Box display="grid" gridTemplateColumns="repeat(1, 1fr)" gap={2} sx={{px:3, py:2}}>
+                        <Formik
+                        initialValues={dataForm}
+                        validationSchema={validationSchema}
+                        onSubmit={handleSubmit} >
+                            {({ errors, touched, isSubmitting, setFieldValue }) => (
+                            <Form>
+                                <Box display="grid" gridTemplateColumns="repeat(2, 1fr)" gap={2}>
+                                    <Field
+                                        as={TextField}
+                                        name="no_request"
+                                        label="Nomor"
+                                        error={touched.no_request && !!errors.no_request}
+                                        helperText={touched.no_request && errors.no_request}
+                                        fullWidth
                                     />
-                                    )}
-                                />
-                            </LocalizationProvider>
-                            <Field
-                                as={TextField}
-                                name="kode_departemen"
-                                label="Kode Department"
-                                error={touched.kode_departemen && !!errors.kode_departemen}
-                                helperText={touched.kode_departemen && errors.kode_departemen}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="nama_approve_vpkeu"
-                                label="Nama Approve VPKEU"
-                                error={touched.nama_approve_vpkeu && !!errors.nama_approve_vpkeu}
-                                helperText={touched.nama_approve_vpkeu && errors.nama_approve_vpkeu}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="nama_approve_vptre"
-                                label="Nama Approve VPTRE"
-                                error={touched.nama_approve_vptre && !!errors.nama_approve_vptre}
-                                helperText={touched.nama_approve_vptre && errors.nama_approve_vptre}
-                                fullWidth
-                            />
-                            <Field
-                                as={TextField}
-                                name="nama_approve_vp"
-                                label="Nama Approve VP"
-                                error={touched.nama_approve_vp && !!errors.nama_approve_vp}
-                                helperText={touched.nama_approve_vp && errors.nama_approve_vp}
-                                fullWidth
-                            />
-                        </Box>
-                        <Button variant='contained' type="submit" color="primary" disabled={isSubmitting} sx={{my:2, py:1, px:2, width:'100px'}}>
-                            Submit
-                        </Button>
-                    </Form>
-                    )}
-                </Formik>
-                <Snackbar 
-                open={!!errorMessage} 
-                autoHideDuration={6000} 
-                onClose={() => setErrorMessage(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-                >
-                <Alert onClose={() => setErrorMessage(null)} severity="error" sx={{ width: '100%' }}>
-                    {errorMessage}
-                </Alert>
-            </Snackbar>
-            </Box>
+                                    <Field
+                                        as={TextField}
+                                        name="nama_pemohon"
+                                        label="Nama"
+                                        error={touched.nama_pemohon && !!errors.nama_pemohon}
+                                        helperText={touched.nama_pemohon && errors.nama_pemohon}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="jabatan"
+                                        label="Jabatan"
+                                        error={touched.jabatan && !!errors.jabatan}
+                                        helperText={touched.jabatan && errors.jabatan}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="nama_departemen"
+                                        label="Divisi"
+                                        error={touched.nama_departemen && !!errors.nama_departemen}
+                                        helperText={touched.nama_departemen && errors.nama_departemen}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="uraian"
+                                        label="Program Kerja"
+                                        error={touched.uraian && !!errors.uraian}
+                                        helperText={touched.uraian && errors.uraian}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="nama_jenis"
+                                        label="Jenis Program Kerja"
+                                        error={touched.nama_jenis && !!errors.nama_jenis}
+                                        helperText={touched.nama_jenis && errors.nama_jenis}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="jml_request"
+                                        label="Jumlah Pertanggungjawaban"
+                                        type="number"
+                                        error={touched.jml_request && !!errors.jml_request}
+                                        helperText={touched.jml_request && errors.jml_request}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="jml_terbilang"
+                                        label="Terbilang"
+                                        error={touched.jml_terbilang && !!errors.jml_terbilang}
+                                        helperText={touched.jml_terbilang && errors.jml_terbilang}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="deskripsi"
+                                        label="Deskripsi"
+                                        error={touched.deskripsi && !!errors.deskripsi}
+                                        helperText={touched.deskripsi && errors.deskripsi}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="harga"
+                                        label="Harga"
+                                        type="number"
+                                        error={touched.harga && !!errors.harga}
+                                        helperText={touched.harga && errors.harga}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="total"
+                                        label="Total"
+                                        type="number"
+                                        error={touched.total && !!errors.total}
+                                        helperText={touched.total && errors.total}
+                                        fullWidth
+                                    />
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <Field
+                                        name="tgl_lpj"
+                                        component={({ field }: FieldProps) => (
+                                            <DatePicker
+                                            label="Tanggal"
+                                            value={field.value ? dayjs(field.value) : null}
+                                            onChange={(newValue) => {
+                                                setFieldValue(field.name, newValue?.format('M/D/YYYY') || '');
+                                                console.log(newValue)
+                                            }}
+                                            slots={{ textField: (props) => <TextField {...props} fullWidth /> }}
+                                            />
+                                            )}
+                                        />
+                                    </LocalizationProvider>
+                                    <Field
+                                        as={TextField}
+                                        name="kode_departemen"
+                                        label="Kode Department"
+                                        error={touched.kode_departemen && !!errors.kode_departemen}
+                                        helperText={touched.kode_departemen && errors.kode_departemen}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="nama_approve_vpkeu"
+                                        label="Nama Approve VPKEU"
+                                        error={touched.nama_approve_vpkeu && !!errors.nama_approve_vpkeu}
+                                        helperText={touched.nama_approve_vpkeu && errors.nama_approve_vpkeu}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="nama_approve_vptre"
+                                        label="Nama Approve VPTRE"
+                                        error={touched.nama_approve_vptre && !!errors.nama_approve_vptre}
+                                        helperText={touched.nama_approve_vptre && errors.nama_approve_vptre}
+                                        fullWidth
+                                    />
+                                    <Field
+                                        as={TextField}
+                                        name="nama_approve_vp"
+                                        label="Nama Approve VP"
+                                        error={touched.nama_approve_vp && !!errors.nama_approve_vp}
+                                        helperText={touched.nama_approve_vp && errors.nama_approve_vp}
+                                        fullWidth
+                                    />
+                                </Box>
+                                <Button variant='contained' type="submit" color="primary" disabled={isSubmitting} sx={{my:2, py:1, px:2, width:'auto'}}>
+                                Generate File
+                                </Button>
+                            </Form>
+                            )}
+                        </Formik>
+                        <Snackbar 
+                        open={!!errorMessage} 
+                        autoHideDuration={6000} 
+                        onClose={() => setErrorMessage(null)}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                        >
+                        <Alert onClose={() => setErrorMessage(null)} severity="error" sx={{ width: '100%' }}>
+                            {errorMessage}
+                        </Alert>
+                    </Snackbar>
+                    </Box>
+                </>
+           )}
         </Container>
     )
 }
