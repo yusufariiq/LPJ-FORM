@@ -1,0 +1,28 @@
+{
+  "name": "lpj-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "chokidar": "^3.6.0",
+    "cors": "^2.8.5",
+    "docxtemplater": "^3.50.0",
+    "docxtemplater-image-module-free": "^1.1.1",
+    "express": "^4.19.2",
+    "libreoffice-convert": "^1.6.0",
+    "pizzip": "^3.1.7",
+    "unoconv2": "^1.0.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21"
+  }
+}
